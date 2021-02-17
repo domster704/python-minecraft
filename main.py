@@ -11,23 +11,24 @@ order_blocks = [
 	'dirt',
 	'oak_planks',
 	'bricks',
-	'glass']
+	'glass',
+	'stone']
 
 texture_list = [
 	load_texture(f'{path}{order_blocks[0]}.png'),
 	load_texture(f'{path}{order_blocks[1]}.png'),
 	load_texture(f'{path}{order_blocks[2]}.png'),
 	load_texture(f'{path}{order_blocks[3]}.png'),
-	load_texture(f'{path}{order_blocks[4]}.png')]
+	load_texture(f'{path}{order_blocks[4]}.png'),
+	load_texture(f'{path}{order_blocks[5]}.png')]
 
-# block_break_audio = Audio('data/audio/stone1.mp3')
+
 hand_texture = load_texture('data/model/hand/arm_texture.png')
 block_num = 0
 pos = 0
 
 sky_texture = load_texture('data/texture/skybox.png')
 pickaxe = load_texture('data/texture/Diffuse.png')
-# grass_texture = load_texture('data/texture/expand_texture/grass_block.png')
 
 
 def update():
@@ -63,6 +64,9 @@ def update():
 			if val in list('123456789'):
 				block_num = pos = int(val) - 1
 
+	# for i in range(len(inv.list_icons)):
+	# 	texture_list[i] = inv.list_icons[i].texture
+
 	try:
 		for i in range(len(inv.list_icons)):
 			inv.list_icons[i].color = color.white
@@ -86,7 +90,8 @@ class Block(Button):
 	def input(self, key):
 		if self.hovered:
 			if key == 'right mouse down':
-				Block(position=self.position + mouse.normal, texture=texture_list[block_num])
+				if block_num in range(0, 6):
+					Block(position=self.position + mouse.normal, texture=texture_list[block_num])
 			if key == 'left mouse down':
 				if self.y != 0:
 					# block_break_audio.play()
@@ -95,23 +100,46 @@ class Block(Button):
 
 class Hand(Entity):
 	def __init__(self):
-		# self.pos_x = 0.8
-		# self.pos_y = -0.6
+		self.switch = 0
 		self.pos_x = 0.6
 		self.pos_y = -0.25
+		self.d_x = self.d_y = 0.1
 
 		super(Hand, self).__init__(
 			parent=camera.ui,
-			model='data/model/tools/Diamond-Pickaxe',
-			texture=pickaxe,
-			scale=0.03,
-			rotation=Vec3(60, 20, 45),
-			# rotation=Vec3(0, -80, 5),
+			model='cube',
+			texture=texture_list[block_num],
+			scale=0.4,
 			position=Vec2(self.pos_x, self.pos_y)
 		)
-		self.d_x = self.d_y = 0.1
+
+	def setBlock(self, texture):
+		self.model = 'cube'
+		self.texture = texture
+		self.scale = 0.4
+		self.position = Vec2(self.pos_x, self.pos_y)
+
+	def setTool(self):
+		try:
+			self.model = 'data/model/tool/Diamond-Pickaxe'
+			self.texture = pickaxe
+			self.scale = 0.03
+			self.rotation = Vec3(60, 20, 45)
+			self.position = Vec2(self.pos_x, self.pos_y)
+		except Exception as e:
+			print(e)
+
+	def update(self):
+		if block_num in [0, 1, 2, 3, 4, 5]:
+			self.setBlock(texture_list[block_num])
+			self.switch = 1
+		elif block_num in [6, 7, 8] and self.switch == 1:
+			self.setTool()
+			self.switch = 0
 
 	def active(self):
+		# if block_num in [0, 1, 2, 3, 4, 5]:
+		# elif block_num in [6, 7, 8]:
 		self.position = Vec2(self.pos_x - self.d_x, self.pos_y + self.d_y)
 		self.rotation = Vec3(70, 20, 45)
 
@@ -135,7 +163,7 @@ def init_param():
 	window.vsync = False
 	window.title = "Minecraft"
 	window.exit_button.visible = False
-	camera.fov = 3
+	# window.fullscreen = True
 
 
 if __name__ == "__main__":
@@ -146,17 +174,14 @@ if __name__ == "__main__":
 		for x in range(size_x):
 			block = Block(position=(x, 0, y), texture=load_texture('data/texture/base_texture/grass_path_top.png'))
 
-	for y in range(size_y):
-		for x in range(size_x):
-			if y == 0 or y == size_y - 1:
-				block = Block(position=(x, 1, y))
-			if x == size_x - 1 or x == 0:
-				block = Block(position=(x, 1, y))
-
 	inv = Inventory()
 	inv.fillInv(order_blocks, texture_list)
 
 	player = FirstPersonController()
+	cursorTexture = load_texture('data/texture/cursor.png')
+	destroy(player.cursor)
+	player.cursor = Entity(parent=camera.ui, model='quad', scale=.03, texture=cursorTexture,
+						   position_z=-0.01)
 	player.position = (5, 0, 5)
 	player.mouse_sensitivity = Vec2(50, 50)
 	player.jump_duration = 0.2

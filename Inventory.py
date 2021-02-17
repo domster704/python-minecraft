@@ -10,12 +10,12 @@ class Inventory(Entity):
 			model='quad',
 			scale=(1, .1),
 			origin=(-.5, .5),
-			position=(-.5, -.37),
+			position=(-.5, -.37, -0.01),
 			texture='white_cube',
-			texture_scale=(8, 1),
+			texture_scale=(9, 1),
 			color=color.smoke
 		)
-		self.item_parent = Entity(parent=self, scale=(1/8, 1))
+		self.item_parent = Entity(parent=self, scale=(1 / 9, 1))
 		self.list_icons = []
 
 	def fillInv(self, order_blocks, texture_list):
@@ -45,10 +45,31 @@ class Inventory(Entity):
 		icon.tooltip = Tooltip(name)
 		icon.tooltip.background.color = color.color(0, 0, 0, .8)
 
+		def drag():
+			icon.org_pos = (icon.x, icon.y)
+			icon.z -= .01  # ensure the dragged item overlaps the rest
+
 		def drop():
 			icon.x = int(icon.x)
 			icon.y = int(icon.y)
 
+			# если вытащили предемет за периметр инвенторя, вернуть в изначальное положение
+			if icon.x < 0 or icon.x >= 1 or icon.y > 0 or icon.y <= -1:
+				icon.position = icon.org_pos
+				return
+
+			for c in self.children:
+				if c == icon:
+					continue
+
+				if c.x == icon.x and c.y == icon.y:
+					print('swap positions')
+					icon.position = c.position
+					c.position = icon.org_pos
+					self.list_icons[self.list_icons.index(c)], self.list_icons[self.list_icons.index(icon)] = \
+					self.list_icons[self.list_icons.index(icon)], self.list_icons[self.list_icons.index(c)]
+
+		icon.drag = drag
 		icon.drop = drop
 
 
