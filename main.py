@@ -4,6 +4,8 @@ from Inventory import *
 
 app = Ursina()
 
+ec = Entity()
+
 path = 'data/texture/base_texture/'
 
 order_blocks = [
@@ -22,7 +24,6 @@ texture_list = [
 	load_texture(f'{path}{order_blocks[4]}.png'),
 	load_texture(f'{path}{order_blocks[5]}.png')]
 
-
 hand_texture = load_texture('data/model/hand/arm_texture.png')
 block_num = 0
 pos = 0
@@ -33,6 +34,11 @@ pickaxe = load_texture('data/texture/Diffuse.png')
 
 def update():
 	global block_num, pos
+
+	# if held_keys['c']:
+	# 	creativeMode()
+	# elif held_keys['v']:
+	# 	destroy(ec)
 
 	# вход в инвентарь
 	if held_keys['i']:
@@ -90,7 +96,10 @@ class Block(Button):
 	def input(self, key):
 		if self.hovered:
 			if key == 'right mouse down':
-				if block_num in range(0, 6):
+				# проверка на расстояние между нажатым блоком и player ( если меньше {6}, то можно поставить блок
+				if block_num in range(0, len(texture_list)) and \
+						sqrt((int(self.position.x) - int(player.position.x)) ** 2 + (
+								(int(self.position.z) - int(player.position.z))) ** 2) <= 6:
 					Block(position=self.position + mouse.normal, texture=texture_list[block_num])
 			if key == 'left mouse down':
 				if self.y != 0:
@@ -130,16 +139,14 @@ class Hand(Entity):
 			print(e)
 
 	def update(self):
-		if block_num in [0, 1, 2, 3, 4, 5]:
+		if block_num in range(0, len(texture_list)):
 			self.setBlock(texture_list[block_num])
 			self.switch = 1
-		elif block_num in [6, 7, 8] and self.switch == 1:
+		elif block_num in range(len(texture_list) - 1, 9) and self.switch == 1:
 			self.setTool()
 			self.switch = 0
 
 	def active(self):
-		# if block_num in [0, 1, 2, 3, 4, 5]:
-		# elif block_num in [6, 7, 8]:
 		self.position = Vec2(self.pos_x - self.d_x, self.pos_y + self.d_y)
 		self.rotation = Vec3(70, 20, 45)
 
@@ -163,7 +170,17 @@ def init_param():
 	window.vsync = False
 	window.title = "Minecraft"
 	window.exit_button.visible = False
-	# window.fullscreen = True
+
+
+# window.fullscreen = True
+
+
+def creativeMode():
+	ec = EditorCamera(enabled=True, rotation=(-37, 0, 0), positon=(20, 20, 20))
+	ec.gizmo.enabled = False
+	ec.pan_speed = Vec2(3, 3)
+	ec.rotate_around_mouse_hit = True
+	ec.move_speed = 10
 
 
 if __name__ == "__main__":
