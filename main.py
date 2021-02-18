@@ -113,6 +113,9 @@ class Block(Button):
 	def input(self, key):
 		if self.hovered:
 			if key == 'right mouse down':
+				# TODO: добавить лестниу (уже добевлена, но надо улучшить)
+				# Block(position=self.position + mouse.normal, model='data/model/stairs/stairs',
+				# 	  texture=load_texture('data/model/stairs/east.png'))
 				# проверка на расстояние между нажатым блоком и player ( если меньше {6}, то можно поставить блок
 				if block_num in range(0, len(texture_list)) and \
 						sqrt((int(self.position.x) - int(player.position.x)) ** 2 + (
@@ -163,7 +166,16 @@ class Hand(Entity):
 		except Exception as e:
 			print(e)
 
+	# def setStairs(self):
+	# 	self.model = 'data/model/stairs/stairs'
+	# 	self.texture = load_texture('data/model/stairs/east.png')
+	# 	self.scale = 1
+	# 	self.rotation = Vec3(60, 20, 45)
+	# 	self.position = Vec2(self.pos_x, self.pos_y)
+
 	def update(self):
+		# if block_num in 9:
+		# 	self.setStairs()
 		if block_num in range(0, len(texture_list)) and self.k != block_num:
 			self.setBlock(texture_list[block_num])
 			self.switch = 1
@@ -178,7 +190,7 @@ class Hand(Entity):
 			self.rotation = Vec3(70, 20, 45)
 		else:
 			self.position = Vec2(self.pos_x - self.d_x / 2, self.pos_y + self.d_y)
-			self.rotation = Vec3(60, 20, 30)
+			self.rotation = Vec3(60, 20, 40)
 
 	def passive(self):
 		if block_num in range(0, len(texture_list)):
@@ -205,8 +217,10 @@ def init_param():
 	window.vsync = False
 	window.title = "Minecraft"
 	window.exit_button.visible = False
-	# window.fullscreen = True
-	# Light(type='ambient', color=(1, 1, 1, 1))
+
+
+# window.fullscreen = True
+# Light(type='ambient', color=(1, 1, 1, 1))
 
 
 def creativeMode():
