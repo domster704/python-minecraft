@@ -5,28 +5,39 @@ from ursina.shaders import *
 from ursina.shaders import texture_blend_shader
 from Inventory import *
 from PerlinNoise import *
+import numpy as np
 
 app = Ursina()
 
-ec = Entity()
+blockBreakStone = Audio('data/audio/stone.wav', loop=False, autoplay=False)
+blockBreakDirt = Audio('data/audio/grass.wav', loop=False, autoplay=False)
+blockBreakWood = Audio('data/audio/wood.wav', loop=False, autoplay=False)
+blockBreakGlass = Audio('data/audio/glass.wav', loop=False, autoplay=False)
 
 path = 'data/texture/base_texture/'
 
-order_blocks = [
+order_blocks = (
 	'stone_bricks',
 	'dirt',
 	'planks',
 	'bricks',
 	'glass',
-	'stone']
+	'stone')
 
-texture_list = [
-	load_texture(f'{path}{order_blocks[0]}.png'),
-	load_texture(f'{path}{order_blocks[1]}.png'),
-	load_texture(f'{path}{order_blocks[2]}.png'),
-	load_texture(f'{path}{order_blocks[3]}.png'),
-	load_texture(f'{path}{order_blocks[4]}.png'),
-	load_texture(f'{path}{order_blocks[5]}.png')]
+stoneBrickTex = load_texture(f'{path}{order_blocks[0]}.png')
+dirtTex = load_texture(f'{path}{order_blocks[1]}.png')
+planksTex = load_texture(f'{path}{order_blocks[2]}.png')
+brickTex = load_texture(f'{path}{order_blocks[3]}.png')
+glassTex = load_texture(f'{path}{order_blocks[4]}.png')
+stoneTex = load_texture(f'{path}{order_blocks[5]}.png')
+
+texture_list = np.array(
+	[(stoneBrickTex, blockBreakStone),
+	 (dirtTex, blockBreakDirt),
+	 (planksTex, blockBreakWood),
+	 (brickTex, blockBreakStone),
+	 (glassTex, blockBreakGlass),
+	 (stoneTex, blockBreakStone)])
 
 hand_texture = load_texture('data/model/hand/arm_texture.png')
 block_num = 0
@@ -77,9 +88,9 @@ def update():
 
 	# управление приседанием персонажа при нажатии Ctrl
 	if held_keys['left control']:
-		player.camera_pivot.y = 1.5
+		player.camera_pivot.y = 1.4
 	else:
-		player.camera_pivot.y = 2
+		player.camera_pivot.y = 1.8
 
 	# выбор блока
 	for val, key in held_keys.items():
@@ -99,7 +110,8 @@ def update():
 
 
 class Block(Button):
-	def __init__(self, position=(0, 0, 0), model='data/model/block/1', texture=texture_list[block_num]):
+	def __init__(self, position=(0, 0, 0), model='data/model/block/1', texture=texture_list[block_num][0], scale=1,
+				 nameBlock=order_blocks[block_num]):
 		super().__init__(
 			parent=scene,
 			position=position,
@@ -107,23 +119,32 @@ class Block(Button):
 			origin_y=.5,
 			texture=texture,
 			color=color.color(0, 0, random.uniform(.9, 1.0)),
-			scale=1,
+			scale=scale,
 		)
+		self.nameBlock = nameBlock
 
 	def input(self, key):
 		if self.hovered:
+			# проверка на расстояние между нажатым блоком и player ( если меньше {6}, то можно поставить блок
+			checking = sqrt((int(self.position.x) - int(player.position.x)) ** 2 + (
+				(int(self.position.z) - int(player.position.z))) ** 2) <= 10
 			if key == 'right mouse down':
 				# TODO: добавить лестниу (уже добевлена, но надо улучшить)
 				# Block(position=self.position + mouse.normal, model='data/model/stairs/stairs',
 				# 	  texture=load_texture('data/model/stairs/east.png'))
-				# проверка на расстояние между нажатым блоком и player ( если меньше {6}, то можно поставить блок
-				if block_num in range(0, len(texture_list)) and \
-						sqrt((int(self.position.x) - int(player.position.x)) ** 2 + (
-								(int(self.position.z) - int(player.position.z))) ** 2) <= 10:
-					Block(position=self.position + mouse.normal, texture=texture_list[block_num])
-			if key == 'left mouse down':
+				if block_num in range(0, len(texture_list)) and checking:
+					if order_blocks[block_num] == 'glass':
+						blockBreakStone.play()
+					else:
+						texture_list[block_num][1].play()
+					Block(position=self.position + mouse.normal, texture=texture_list[block_num][0], nameBlock=order_blocks[block_num])
+			if key == 'left mouse down' and checking:
+				try:
+					print(self.nameBlock)
+					texture_list[order_blocks.index(self.nameBlock)][1].play()
+				except:
+					pass
 				if self.y != 0:
-					# block_break_audio.play()
 					destroy(self)
 
 
@@ -139,7 +160,7 @@ class Hand(Entity):
 		super(Hand, self).__init__(
 			parent=camera.ui,
 			model='cube',
-			texture=texture_list[block_num],
+			texture=texture_list[block_num][0],
 			scale=0.4,
 			position=Vec2(self.pos_x, self.pos_y),
 			shader=lit_with_shadows_shader
@@ -177,7 +198,7 @@ class Hand(Entity):
 		# if block_num in 9:
 		# 	self.setStairs()
 		if block_num in range(0, len(texture_list)) and self.k != block_num:
-			self.setBlock(texture_list[block_num])
+			self.setBlock(texture_list[block_num][0])
 			self.switch = 1
 			self.k = block_num
 		elif block_num in range(len(texture_list), 9) and self.switch == 1:
@@ -242,19 +263,43 @@ if __name__ == "__main__":
 	for y in range(size_y):
 		for x in range(size_x):
 			block = Block(position=(x, 0, y),
-						  texture=load_texture('data/texture/base_texture/grass_top.png')
+						  texture=load_texture('data/texture/base_texture/grass_top.png'),
+						  nameBlock='grass'
 						  )
 
-	map = perlineNoise()
+	map1 = perlineNoise()
+	map2 = perlineNoise()
+
+
+	def checkNear(map, x, y):
+		try:
+			if map[x + 1][y] == '-' or map[x - 1][y] == '-' or map[x][y + 1] == '-' or map[x][y - 1] == '-' or \
+					map[x + 1][y + 1] == '-' or map[x + 1][y - 1] == '-' or map[x - 1][y + 1] == '-' or map[x - 1][
+				y - 1] == '-':
+				return False
+			else:
+				return True
+		except IndexError:
+			pass
+
+
+	textureDirt = load_texture('data/texture/base_texture/dirt.png')
 	for y in range(size_y):
 		for x in range(size_x):
-			if map[y][x] == '#':
+			if map1[y][x] == '#':
 				block = Block(position=(x, 1, y),
-							  texture=load_texture('data/texture/base_texture/dirt.png')
+							  texture=textureDirt,
+							  nameBlock='dirt'
+							  )
+			if map2[y][x] == '#' and map1[y][x] == "#" and checkNear(map1, y, x):
+				block = Block(position=(x, 2, y),
+							  texture=textureDirt,
+							  nameBlock='dirt'
 							  )
 
+	print(texture_list[:, :-1])
 	inv = Inventory()
-	inv.fillInv(order_blocks, texture_list)
+	inv.fillInv(order_blocks, texture_list[:, :-1])
 
 	player = FirstPersonController()
 	cursorTexture = load_texture('data/texture/cursor.png')
