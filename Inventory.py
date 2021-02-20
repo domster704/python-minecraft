@@ -20,7 +20,7 @@ class Inventory(Entity):
 
 	def fillInv(self, order_blocks, texture_list):
 		for i in range(len(texture_list)):
-			self.add(order_blocks[i], texture_list[i][0])
+			self.add(order_blocks[i], texture_list[i])
 
 	def findFreeSpot(self):
 		spots = [(int(e.x), int(e.y)) for e in self.item_parent.children]
@@ -86,5 +86,5 @@ def update():
 if __name__ == "__main__":
 	app = Ursina()
 	inv = Inventory()
-	inv.add("dirt", 'data/texture/base_texture/dirt.png')
+	inv.add("dirt", 'data/texture/base_texture/grass.png')
 	app.run()
