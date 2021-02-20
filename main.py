@@ -1,8 +1,5 @@
 from ursina import *
 from ursina.prefabs.first_person_controller import FirstPersonController
-from ursina import textures
-from ursina.shaders import *
-from ursina.shaders import texture_blend_shader
 from Inventory import *
 from PerlinNoise import *
 import numpy as np
@@ -128,12 +125,12 @@ def update():
 		try:
 			inv.list_icons[i].color = color.white
 			inv.list_icons[pos].color = color.gray
-		except Exception as e:
+		except:
 			inv.list_icons[i].color = color.white
 
 
 class Block(Button):
-	def __init__(self, position=(0, 0, 0), model='data/model/block', texture=texture_list[block_num][0], scale=1,
+	def __init__(self, position=(0, 0, 0), model='data/model/block/block', texture=texture_list[block_num][0], scale=1,
 				 nameBlock=order_blocks[block_num]):
 		super().__init__(
 			parent=scene,
@@ -183,7 +180,7 @@ class Hand(Entity):
 
 		super(Hand, self).__init__(
 			parent=camera.ui,
-			model='data/model/block',
+			model='data/model/block/block',
 			texture=texture_list[block_num][0],
 			scale=0.4,
 			position=Vec2(self.pos_x, self.pos_y),
@@ -192,13 +189,8 @@ class Hand(Entity):
 
 	def setBlock(self, texture):
 		try:
-			if block_num == 4:
-				self.model = 'cube'
-				self.color = color.white
-				self.texture = load_texture(pathForInv + "glass.png")
-			else:
-				self.model = 'data/model/block'
-				self.texture = texture
+			self.model = 'data/model/block/block'
+			self.texture = texture
 			self.scale = 0.4
 			self.position = Vec2(self.pos_x, self.pos_y)
 		except Exception as e:
@@ -206,8 +198,6 @@ class Hand(Entity):
 
 	def setTool(self):
 		try:
-			# self.model = 'data/model/tool/Diamond-Pickaxe'
-			# self.parent = scene
 			self.model = 'data/model/tool/Diamond-Pickaxe'
 			self.texture = pickaxe
 			self.scale = 0.03
@@ -237,7 +227,6 @@ class Hand(Entity):
 	def active(self):
 		if block_num in range(0, len(texture_list)):
 			self.position = Vec2(self.pos_x - self.d_x, self.pos_y + self.d_y)
-			# self.rotation = Vec3(70, 20, 45)
 			self.rotation = Vec3(-45, -20, 0)
 		else:
 			self.position = Vec2(self.pos_x - self.d_x / 2, self.pos_y + self.d_y)
@@ -246,7 +235,6 @@ class Hand(Entity):
 	def passive(self):
 		if block_num in range(0, len(texture_list)):
 			self.position = Vec2(self.pos_x, self.pos_y)
-			# self.rotation = Vec3(60, 20, 45)
 			self.rotation = Vec3(-45, -20, 0)
 		else:
 			self.position = Vec2(self.pos_x, self.pos_y)
@@ -259,7 +247,6 @@ class Sky(Entity):
 			parent=scene,
 			model='sphere',
 			texture=sky_texture,
-			# texture='sky_default',
 			scale=600,
 			double_sided=True)
 
@@ -285,7 +272,7 @@ if __name__ == "__main__":
 	size_x = 32
 
 	textureGrass = load_texture('data/texture/expand_texture/grass.png')
-	model = 'data/model/block'
+	model = 'data/model/block/block'
 
 	map1 = perlineNoise()
 	map2 = perlineNoise()
@@ -306,8 +293,7 @@ if __name__ == "__main__":
 			Block(position=(x, 0, y),
 						  texture=textureGrass,
 						  model=model,
-						  nameBlock='main'
-						  )
+						  nameBlock='main')
 			if map1[y][x] == '#':
 				Block(position=(x, 1, y),
 							  model=model,
