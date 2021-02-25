@@ -4,7 +4,7 @@ pos = 0
 
 
 class Inventory(Entity):
-	def __init__(self):
+	def __init__(self, **kwargs):
 		super(Inventory, self).__init__(
 			parent=camera.ui,
 			model='quad',
@@ -15,7 +15,11 @@ class Inventory(Entity):
 			texture_scale=(9, 1),
 			color=color.smoke
 		)
-		self.item_parent = Entity(parent=self, scale=(1 / 9, 1))
+
+		for key, value in kwargs.items():
+			setattr(self, key, value)
+
+		# self.item_parent = Entity(parent=self, scale=(1 / 9, 1))
 		self.list_icons = []
 
 	def fillInv(self, order_blocks, texture_list):
@@ -23,22 +27,29 @@ class Inventory(Entity):
 			self.add(order_blocks[i], texture_list[i])
 
 	def findFreeSpot(self):
-		spots = [(int(e.x), int(e.y)) for e in self.item_parent.children]
+		grid_positions = [(int(e.x * self.texture_scale[0]), int(e.y * self.texture_scale[1])) for e in
+						  self.children]
 		for y in range(1):
-			for x in range(8):
-				if not (x, -y) in spots:
+			for x in range(9):
+				if not (x, -y) in grid_positions:
 					return x, -y
 
 	def add(self, item, texture):
+		x, y = self.findFreeSpot()
+
 		icon = Draggable(
-			parent=self.item_parent,
+			parent=self,
 			model='quad',
-			origin=(-.55, .55),
+			scale_x=1 / self.texture_scale[0],
+			scale_y=1 / self.texture_scale[1],
 			texture=texture,
 			color=color.white,
-			position=self.findFreeSpot(),
-			scale=0.9,
-			z=-1
+			origin=(-.5, .5),
+			x=x * 1 / self.texture_scale[0],
+			y=-y * 1 / self.texture_scale[1],
+			scale=0.5,
+			z=-1,
+			name=item
 		)
 		self.list_icons.append(icon)
 		name = item.title()
@@ -50,24 +61,22 @@ class Inventory(Entity):
 			icon.z -= .01  # ensure the dragged item overlaps the rest
 
 		def drop():
-			icon.x = int(icon.x)
-			icon.y = int(icon.y)
+			icon.x = int((icon.x + (icon.scale_x / 2)) * 9) / 9
+			icon.y = int((icon.y - (icon.scale_y / 2)))
 
 			# если вытащили предемет за периметр инвенторя, вернуть в изначальное положение
-			if icon.x < 0 or icon.x >= 1 or icon.y > 0 or icon.y <= -1:
+			if icon.x < 0 or icon.y > 0 or icon.y <= -1:
 				icon.position = icon.org_pos
 				return
 
 			for c in self.children:
 				if c == icon:
 					continue
-
 				if c.x == icon.x and c.y == icon.y:
 					print('swap positions')
-					icon.position = c.position
 					c.position = icon.org_pos
 					self.list_icons[self.list_icons.index(c)], self.list_icons[self.list_icons.index(icon)] = \
-					self.list_icons[self.list_icons.index(icon)], self.list_icons[self.list_icons.index(c)]
+						self.list_icons[self.list_icons.index(icon)], self.list_icons[self.list_icons.index(c)]
 
 		icon.drag = drag
 		icon.drop = drop
@@ -87,4 +96,8 @@ if __name__ == "__main__":
 	app = Ursina()
 	inv = Inventory()
 	inv.add("dirt", 'data/texture/base_texture/grass.png')
+	inv.add("dirt", 'data/texture/base_texture/stone.png')
+	inv.add("dirt", 'data/texture/base_texture/wool.png')
+
+	inv.add("dirt", 'data/texture/base_texture/planks.png')
 	app.run()

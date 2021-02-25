@@ -3,6 +3,10 @@ from ursina.prefabs.first_person_controller import FirstPersonController
 from Inventory import *
 from PerlinNoise import *
 import numpy as np
+import random
+import string
+import os
+import re
 
 app = Ursina()
 
@@ -13,10 +17,11 @@ blockBreakWood = Audio('data/audio/wood.wav', loop=False, autoplay=False)
 blockBreakGlass = Audio('data/audio/glass.wav', loop=False, autoplay=False)
 blockBreakWool = Audio('data/audio/wool.wav', loop=False, autoplay=False)
 
+# Загрузка текстур
 path = 'data/texture/expand_texture/'
 pathForInv = 'data/texture/base_texture/'
 
-order_blocks = (
+order_blocks = [
 	'stone_bricks',
 	'grass',
 	'planks',
@@ -24,9 +29,9 @@ order_blocks = (
 	'glass',
 	'stone',
 	'log',
-	'wool')
+	'wool']
 
-textureListInv = (
+textureListInv = [
 	load_texture(f'{pathForInv}{order_blocks[0]}.png'),
 	load_texture(f'{pathForInv}{order_blocks[1]}.png'),
 	load_texture(f'{pathForInv}{order_blocks[2]}.png'),
@@ -34,26 +39,16 @@ textureListInv = (
 	load_texture(f'{pathForInv}{order_blocks[4]}.png'),
 	load_texture(f'{pathForInv}{order_blocks[5]}.png'),
 	load_texture(f'{pathForInv}{order_blocks[6]}.png'),
-	load_texture(f'{pathForInv}{order_blocks[7]}.png'))
+	load_texture(f'{pathForInv}{order_blocks[7]}.png')]
 
-# stoneBrickTex = load_texture(f'{path}{order_blocks[0]}.png')
-# dirtTex = load_texture(f'{path}{order_blocks[1]}.png')
-# planksTex = load_texture(f'{path}{order_blocks[2]}.png')
-# brickTex = load_texture(f'{path}{order_blocks[3]}.png')
-# glassTex = load_texture(f'{path}{order_blocks[4]}.png')
-# stoneTex = load_texture(f'{path}{order_blocks[5]}.png')
-# logTex = load_texture(f'{path}{order_blocks[6]}.png')
-# woolTex = load_texture(f'{path}{order_blocks[7]}.png')
-
-texture_list = np.array(
-	[(load_texture(f'{path}{order_blocks[0]}.png'), blockBreakStone),
-	 (load_texture(f'{path}{order_blocks[1]}.png'), blockBreakDirt),
-	 (load_texture(f'{path}{order_blocks[2]}.png'), blockBreakWood),
-	 (load_texture(f'{path}{order_blocks[3]}.png'), blockBreakStone),
-	 (load_texture(f'{path}{order_blocks[4]}.png'), blockBreakGlass),
-	 (load_texture(f'{path}{order_blocks[5]}.png'), blockBreakStone),
-	 (load_texture(f'{path}{order_blocks[6]}.png'), blockBreakWood),
-	 (load_texture(f'{path}{order_blocks[7]}.png'), blockBreakWool)])
+texture_list = [(load_texture(f'{path}{order_blocks[0]}.png'), blockBreakStone),
+				(load_texture(f'{path}{order_blocks[1]}.png'), blockBreakDirt),
+				(load_texture(f'{path}{order_blocks[2]}.png'), blockBreakWood),
+				(load_texture(f'{path}{order_blocks[3]}.png'), blockBreakStone),
+				(load_texture(f'{path}{order_blocks[4]}.png'), blockBreakGlass),
+				(load_texture(f'{path}{order_blocks[5]}.png'), blockBreakStone),
+				(load_texture(f'{path}{order_blocks[6]}.png'), blockBreakWood),
+				(load_texture(f'{path}{order_blocks[7]}.png'), blockBreakWool)]
 
 hand_texture = load_texture('data/model/hand/arm_texture.png')
 sky_texture = load_texture('data/texture/skybox.png')
@@ -66,7 +61,28 @@ w = 0
 
 def update():
 	global block_num, pos, w
+	list_icons = [i.name for i in inv.list_icons]
+	for i in range(len(list_icons)):
+		for j in range(len(list_icons)):
+			if i == j and order_blocks[i] != list_icons[i]:
+				index1 = i
+				index2 = list_icons.index(order_blocks[i])
+				order_blocks[index1], order_blocks[index2] = order_blocks[index2], order_blocks[index1]
+				texture_list[index1], texture_list[index2] = texture_list[index2], texture_list[index1]
 
+	if held_keys['control'] and held_keys['s']:
+		if isLoaded:
+			print("************************************")
+			fileName = 'data/map/' + file
+		with open(fileName, 'w', encoding='utf-8') as f:
+			f.write('')
+			f.close()
+		for i in scene.entities:
+			if i.name == 'block':
+				print(i.position, i.nameBlock)
+				with open(fileName, 'a', encoding='utf-8') as f:
+					f.write(str(i.position) + ";" + str(i.nameBlock) + "\n")
+					f.close()
 	# творческий режим
 	# if held_keys['c']:
 	# 	creativeMode()
@@ -76,14 +92,14 @@ def update():
 	# вход в инвентарь
 	if held_keys['i']:
 		mouse.locked = False
-		w = WindowPanel(
-			title='Custom Window',
-			content=(
-				Text('Name:'),
-				InputField(name='name_field'),
-				Button(text='Submit', color=color.azure),
-			),
-		)
+	# w = WindowPanel(
+	# 	title='Custom Window',
+	# 	content=(
+	# 		Text('Name:'),
+	# 		InputField(name='name_field'),
+	# 		Button(text='Submit', color=color.azure),
+	# 	),
+	# )
 	elif held_keys['escape']:
 		mouse.locked = True
 		try:
@@ -108,10 +124,8 @@ def update():
 
 	# управление скоростью персонажа при нажатии Shift
 	if held_keys['left shift']:
-		camera.ui_size = 20
 		player.speed = 10
 	else:
-		camera.ui_size = 40
 		player.speed = 5
 
 	# выбор блока
@@ -131,14 +145,14 @@ def update():
 
 class Block(Button):
 	def __init__(self, position=(0, 0, 0), model='data/model/block/block', texture=texture_list[block_num][0], scale=1,
-				 nameBlock=order_blocks[block_num]):
+				 nameBlock=order_blocks[block_num], colorB=color.color(0, 0, random.uniform(.9, 1.0))):
 		super().__init__(
 			parent=scene,
 			position=position,
 			model=model,
 			origin_y=.5,
 			texture=texture,
-			color=color.color(0, 0, random.uniform(.9, 1.0)),
+			color=colorB,
 			scale=scale,
 		)
 		self.nameBlock = nameBlock
@@ -184,7 +198,6 @@ class Hand(Entity):
 			texture=texture_list[block_num][0],
 			scale=0.4,
 			position=Vec2(self.pos_x, self.pos_y),
-			# shader=lit_with_shadows_shader
 		)
 
 	def setBlock(self, texture):
@@ -266,6 +279,35 @@ def creativeMode():
 	EditorCamera()
 
 
+def genWorldName(size=10):
+	# count = 0
+	# with open('data/map/worldInfo.txt', 'a', encoding='utf-8') as f:
+	# 	for i in f:
+	# 		count = i
+	return ''.join(random.choice(string.ascii_letters) for _ in range(size))
+
+
+isLoaded = False
+def loadMapFromFile(fileName):
+	global isLoaded
+	isLoaded = True
+	with open('data/map/' + fileName, 'r', encoding='utf-8') as f:
+		for row in f:
+			# print(tuple(map(int, i[5:-2].replace('\n', '').split(','))))
+			data = row.split(';')
+			i = data[0]
+			textureName = data[1].replace('\n', '')
+			if textureName == 'main':
+				textureName = 'grass'
+			textureBlock = texture_list[order_blocks.index(textureName)][0]
+			position = tuple(map(int, i[5:-1].replace(' ', '').split(',')))
+			Block(position=position,
+				  texture=textureBlock,
+				  model=model,
+				  nameBlock=textureName)
+		f.close()
+
+
 if __name__ == "__main__":
 	init_param()
 	size_y = 32
@@ -276,6 +318,7 @@ if __name__ == "__main__":
 
 	map1 = perlineNoise()
 	map2 = perlineNoise()
+
 
 	def checkNear(map, x, y):
 		try:
@@ -288,22 +331,34 @@ if __name__ == "__main__":
 		except IndexError:
 			pass
 
-	for y in range(size_y):
-		for x in range(size_x):
-			Block(position=(x, 0, y),
-						  texture=textureGrass,
-						  model=model,
-						  nameBlock='main')
-			if map1[y][x] == '#':
-				Block(position=(x, 1, y),
-							  model=model,
-							  texture=textureGrass,
-							  nameBlock='grass', )
-			if map2[y][x] == '#' and map1[y][x] == "#" and checkNear(map1, y, x):
-				Block(position=(x, 2, y),
-							  model=model,
-							  texture=textureGrass,
-							  nameBlock='grass')
+
+	listMap = os.listdir('data/map')
+
+	heightOfTransparentBlocks = 3
+	# for y in range(size_y):
+	# 	for x in range(size_x):
+	# Block(position=(x, 0, y),
+	# 	  texture=textureGrass,
+	# 	  model=model,
+	# 	  nameBlock='main')
+	# if map1[y][x] == '#':
+	# 	Block(position=(x, 1, y),
+	# 		  model=model,
+	# 		  texture=textureGrass,
+	# 		  nameBlock='grass', )
+	# if map2[y][x] == '#' and map1[y][x] == "#" and checkNear(map1, y, x):
+	# 	Block(position=(x, 2, y),
+	# 		  model=model,
+	# 		  texture=textureGrass,
+	# 		  nameBlock='grass')
+	# if y == size_y - 1:
+	# 	[Block(model='cube', position=(x, i, y + 1), colorB=color.rgba(0, 0, 0, 0)) for i in range(heightOfTransparentBlocks)]
+	# elif y == 0:
+	# 	[Block(model='cube', position=(x, i, y - 1), colorB=color.rgba(0, 0, 0, 0)) for i in range(heightOfTransparentBlocks)]
+	# if x == size_x - 1:
+	# 	[Block(model='cube', position=(x + 1, i, y), colorB=color.rgba(0, 0, 0, 0)) for i in range(heightOfTransparentBlocks)]
+	# elif x == 0:
+	# 	[Block(model='cube', position=(x - 1, i, y), colorB=color.rgba(0, 0, 0, 0)) for i in range(heightOfTransparentBlocks)]
 
 	inv = Inventory()
 	inv.fillInv(order_blocks, textureListInv)
@@ -315,8 +370,13 @@ if __name__ == "__main__":
 						   position_z=-0.01)
 	player.position = (5, 0, 5)
 	player.mouse_sensitivity = Vec2(50, 50)
-	player.jump_duration = 0.2
+	player.jump_duration = 0.25
+	player.jump_height = 1.5
+
+	file = listMap[0]  # стандартная карта
+	loadMapFromFile(file)
 
 	hand = Hand()
 	sky = Sky()
+	fileName = 'data/map/' + genWorldName()
 	app.run()
