@@ -9,8 +9,6 @@ def perlineNoise():
 	arr = zoom(arr, 8)
 	arr = arr > 0.5
 	arr = np.where(arr, '-', '#')
-	# arr = np.array_str(arr, max_line_width=500)
-	# print(arr)
 	return arr
 
 
